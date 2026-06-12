@@ -7,5 +7,6 @@ public record DeathEvent (
     int x,
     int y,
     int pixelX,
-    int pixelY
+    int pixelY,
+    String zone
 ) {}

@@ -10,9 +10,11 @@ import org.springframework.stereotype.Component;
 public class TimeAnalyzer {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final MapCoordinateConverter mapCoordinateConverter;
+    private final ZoneClassifier zoneClassifier;
 
-    public TimeAnalyzer(MapCoordinateConverter mapCoordinateConverter) {
+    public TimeAnalyzer(MapCoordinateConverter mapCoordinateConverter, ZoneClassifier zoneClassifier) {
         this.mapCoordinateConverter = mapCoordinateConverter;
+        this.zoneClassifier = zoneClassifier;
     }
 
     public List<DeathEvent> findDeaths(String timelineJson, String matchJson, int participantId) {
@@ -24,11 +26,9 @@ public class TimeAnalyzer {
             JsonNode participants = matchRoot.get("info").get("participants");
 
             HashMap<Integer, String> championMap = new HashMap<>();
-
             for(JsonNode participant : participants) {
                 int id = participant.get("participantId").asInt();
                 String championName = participant.get("championName").asText();
-
                 championMap.put(id, championName);
             }
 
@@ -54,6 +54,7 @@ public class TimeAnalyzer {
                             int y = event.get("position").get("y").asInt();
 
                             int[] pixels = mapCoordinateConverter.convertToPixel(x, y);
+                            String zone = zoneClassifier.getZone(x,y);
 
                             deaths.add(new DeathEvent (
                                 formatTimestamp(timestamp),
@@ -62,7 +63,8 @@ public class TimeAnalyzer {
                                 x,
                                 y,
                                 pixels[0],
-                                pixels[1]
+                                pixels[1],
+                                zone
                             ));
                         }
                     }
