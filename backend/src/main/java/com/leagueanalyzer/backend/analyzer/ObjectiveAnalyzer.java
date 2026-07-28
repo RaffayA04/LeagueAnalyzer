@@ -13,8 +13,9 @@ public class ObjectiveAnalyzer {
 
         for (JsonNode frame : timeline.get("info").get("frames")) {
             //splits timeline into frames
-            for(JsonNode event : timeline.get("info").get("events")) {
-                //each frame has list of events
+            JsonNode events = frame.get("events");
+            if (events == null) continue;
+            for(JsonNode event : events) { //each frame has list of events
                 if (!event.get("type").asText().equals("ELITE_MONSTER_KILL")) continue;
                 String monster = event.get("monsterType").asText();
                 long time = event.get("timestamp").asLong();
@@ -45,9 +46,8 @@ public class ObjectiveAnalyzer {
     }
 
     //lets think what i need to actually make an 'objective analyzer'
-
-    //first i need to parse when baron was killed and when the dragons were killed and then add it to the list.
-
+    // dragon and baron kills saved to a data structure, arraylist
+    // time when objectives spawn and retrieve when they were killed to figure out next spawn
     //
 
 }
