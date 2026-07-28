@@ -1,0 +1,4 @@
+# Copy this file to application.properties and fill in your key.
+# Riot API key — personal dev key from https://developer.riotgames.com (expires every 24h).
+# application.properties is gitignored; the real key never gets committed.
+riot.api.key=RGAPI-your-key-here
