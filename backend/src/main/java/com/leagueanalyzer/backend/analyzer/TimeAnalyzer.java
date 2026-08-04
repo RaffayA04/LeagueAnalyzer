@@ -58,6 +58,7 @@ public class TimeAnalyzer {
 
                             deaths.add(new DeathEvent (
                                 formatTimestamp(timestamp),
+                                timestamp,
                                 killerChampion,
                                 assistChampions,
                                 x,

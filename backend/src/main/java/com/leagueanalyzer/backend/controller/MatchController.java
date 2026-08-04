@@ -6,7 +6,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.leagueanalyzer.backend.analyzer.TimeAnalyzer;
+import com.leagueanalyzer.backend.model.AnalyzedDeath;
 import com.leagueanalyzer.backend.model.DeathEvent;
+import com.leagueanalyzer.backend.service.MatchAnalysisService;
 import java.util.*;
 
 @RestController
@@ -14,13 +16,16 @@ import java.util.*;
 public class MatchController {
     private final RiotApiClient riotApiClient;
     private final TimeAnalyzer timeAnalyzer;
+    private final MatchAnalysisService matchAnalysisService;
 
     public MatchController(
         RiotApiClient riotApiClient,
-        TimeAnalyzer timeAnalyzer) {
+        TimeAnalyzer timeAnalyzer,
+        MatchAnalysisService matchAnalysisService) {
 
         this.riotApiClient = riotApiClient;
         this.timeAnalyzer = timeAnalyzer;
+        this.matchAnalysisService = matchAnalysisService;
     }
 
     @GetMapping("/matches/{puuid}")
@@ -47,11 +52,18 @@ public class MatchController {
             String matchJson = riotApiClient.getMatchDetails(matchId);
             
         return timeAnalyzer.findDeaths(
-                timelineJson, 
+                timelineJson,
                 matchJson,
                 participantId
         );
     }
 
-    
+    @GetMapping("/analysis/{matchId}/{participantId}")
+    public List<AnalyzedDeath> getAnalysis(
+        @PathVariable String matchId,
+        @PathVariable int participantId) throws Exception {
+
+        return matchAnalysisService.analyzeDeaths(matchId, participantId);
+    }
+
 }
