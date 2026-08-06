@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.leagueanalyzer.backend.analyzer.TimeAnalyzer;
 import com.leagueanalyzer.backend.model.AnalyzedDeath;
+import com.leagueanalyzer.backend.model.MatchAnalysis;
 import com.leagueanalyzer.backend.model.DeathEvent;
 import com.leagueanalyzer.backend.service.MatchAnalysisService;
 import java.util.*;
@@ -59,11 +60,11 @@ public class MatchController {
     }
 
     @GetMapping("/analysis/{matchId}/{participantId}")
-    public List<AnalyzedDeath> getAnalysis(
+    public MatchAnalysis getAnalysis(
         @PathVariable String matchId,
         @PathVariable int participantId) throws Exception {
 
-        return matchAnalysisService.analyzeDeaths(matchId, participantId);
+        return matchAnalysisService.analyzeMatch(matchId, participantId);
     }
 
 }

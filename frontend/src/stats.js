@@ -5,6 +5,7 @@ export function toDeaths(analysis) {
     const o = a.objectives ?? {}
     return {
       t: d.timestamp,
+      tMs: d.timestampMs,
       zone: d.zone,
       killer: d.killerChampion,
       assists: d.assistChampions,
@@ -82,18 +83,62 @@ export function buildChips(summary) {
   ]
 }
 
+const DRAKE_NAMES = {
+  HEXTECH_DRAGON: 'Hextech Drake',
+  CHEMTECH_DRAGON: 'Chemtech Drake',
+  AIR_DRAGON: 'Cloud Drake',
+  EARTH_DRAGON: 'Mountain Drake',
+  FIRE_DRAGON: 'Infernal Drake',
+  WATER_DRAGON: 'Ocean Drake',
+  ELDER_DRAGON: 'Elder Dragon',
+}
+
+export function objectiveLabel(o) {
+  if (o.monster === 'BARON_NASHOR') return 'Baron'
+  return DRAKE_NAMES[o.subType] ?? 'Drake'
+}
+
+/** Short form for tight spaces like the death rows. */
+export function objectiveShort(o) {
+  if (o.monster === 'BARON_NASHOR') return 'BARON'
+  return o.subType === 'ELDER_DRAGON' ? 'ELDER' : 'DRAKE'
+}
+
+/**
+ * The objective of this kind that fell next after a death. This is the link the
+ * per-death flags cannot make: "Baron was up when you died" only matters once
+ * you know who ended up taking it.
+ */
+export function nextObjectiveAfter(objectives, monster, timeMs) {
+  return objectives.find((o) => o.monster === monster && o.timestampMs > timeMs) ?? null
+}
+
+function gap(fromMs, toMs) {
+  const s = Math.round((toMs - fromMs) / 1000)
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  const r = s % 60
+  return r ? `${m}m ${r}s` : `${m}m`
+}
+
 const NTH = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth']
 
 /** The single line under the summary cards. Changes with hover and filter. */
-export function coachLine(deaths, summary, hover, filter) {
+export function coachLine(deaths, summary, hover, filter, objectives = []) {
   if (hover != null && deaths[hover]) {
     const d = deaths[hover]
     const zone = d.zone.toLowerCase()
-    if (d.obj === 'baron') {
-      return `At ${d.t} you died in the ${zone} while Baron was up — the fight your team couldn't afford to lose a member in.`
-    }
-    if (d.obj === 'drake') {
-      return `At ${d.t} you died in the ${zone} while the Drake was up — right when the map mattered most.`
+
+    if (d.obj) {
+      const monster = d.obj === 'baron' ? 'BARON_NASHOR' : 'DRAGON'
+      const name = d.obj === 'baron' ? 'Baron' : 'the Drake'
+      const next = nextObjectiveAfter(objectives, monster, d.tMs)
+
+      if (next) {
+        const who = next.myTeam ? 'your team took it' : 'the enemy took it'
+        return `At ${d.t} you died in the ${zone} with ${name} up — ${who} ${gap(d.tMs, next.timestampMs)} later.`
+      }
+      return `At ${d.t} you died in the ${zone} with ${name} up — though neither team ended up taking it.`
     }
     const nth = deaths.filter((x, i) => x.killer === d.killer && i <= hover).length
     return `At ${d.t}, ${d.killer}'s ${NTH[nth - 1] ?? `${nth}th`} kill on you — ${d.zone}.`

@@ -15,6 +15,7 @@ export default function App() {
   const [matchIds, setMatchIds] = useState([])
   const [matchId, setMatchId] = useState(null)
   const [deaths, setDeaths] = useState([])
+  const [objectives, setObjectives] = useState([])
 
   async function onSearch(e) {
     e.preventDefault()
@@ -52,7 +53,8 @@ export default function App() {
       const { participantId } = await findParticipantId(id, player.puuid)
       setBusy('Reconstructing the timeline')
       const analysis = await findAnalysis(id, participantId)
-      setDeaths(toDeaths(analysis))
+      setDeaths(toDeaths(analysis.deaths ?? []))
+      setObjectives(analysis.objectives ?? [])
       setStage('analysis')
     } catch (err) {
       setError(err?.message ?? 'Could not analyze that match.')
@@ -68,13 +70,14 @@ export default function App() {
     setMatchIds([])
     setMatchId(null)
     setDeaths([])
+    setObjectives([])
     setError(null)
   }
 
   if (stage === 'analysis') {
     return (
       <div className="shell">
-        <DeathAnalysis deaths={deaths} matchId={matchId} player={player} />
+        <DeathAnalysis deaths={deaths} objectives={objectives} matchId={matchId} player={player} />
         <p style={{ marginTop: 20 }}>
           <button type="button" className="btn-quiet" onClick={() => setStage('matches')}>
             ← Pick another match

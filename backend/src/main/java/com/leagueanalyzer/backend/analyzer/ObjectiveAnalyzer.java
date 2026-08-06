@@ -10,8 +10,17 @@ public class ObjectiveAnalyzer {
     private static final int DRAGONS_FOR_SOUL = 4;
 
     private record ObjectiveKill(long timestamp, int teamId) {}
+
+    /**
+     * One objective changing hands. Unlike the aliveness queries, which only look
+     * backwards from a death, this is the whole game's ledger — which is what makes
+     * "Baron was up when you died" mean anything.
+     */
+    public record ObjectiveTaken(String monster, String subType, long timestampMs, int teamId) {}
+
     private final List<ObjectiveKill> baronKills = new ArrayList<>();
     private final List<ObjectiveKill> dragonKills = new ArrayList<>();
+    private final List<ObjectiveTaken> objectivesTaken = new ArrayList<>();
     private final Map<Integer, Integer> dragonsByTeam = new HashMap<>();
     private final int playerTeamId;
 
@@ -42,6 +51,12 @@ public class ObjectiveAnalyzer {
                     dragonsByTeam.put(teamId, taken);
                     if (taken == DRAGONS_FOR_SOUL && soulTime == null) { soulTime = time; }
                 }
+
+                // Elder is excluded from the drake respawn maths above, but it still
+                // belongs in the ledger — losing one matters as much as any Baron.
+                if (monster.equals("BARON_NASHOR") || monster.equals("DRAGON")) {
+                    objectivesTaken.add(new ObjectiveTaken(monster, subtype.isEmpty() ? null : subtype, time, teamId));
+                }
             }
         }
     }
@@ -69,6 +84,15 @@ public class ObjectiveAnalyzer {
             dragonSpawn = kill.timestamp() + 5 * 60 * 1000;
         }
         return deathTime >= dragonSpawn;
+    }
+
+    /** Every Baron and Dragon taken this game, in the order they fell. */
+    public List<ObjectiveTaken> objectivesTaken() {
+        return List.copyOf(objectivesTaken);
+    }
+
+    public int playerTeamId() {
+        return playerTeamId;
     }
 
     // Team that took the most recent dragon at or before deathTime, or null if none had been taken yet.

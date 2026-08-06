@@ -7,7 +7,9 @@ import com.leagueanalyzer.backend.analyzer.TimeAnalyzer;
 import com.leagueanalyzer.backend.client.RiotApiClient;
 import com.leagueanalyzer.backend.model.AnalyzedDeath;
 import com.leagueanalyzer.backend.model.DeathEvent;
+import com.leagueanalyzer.backend.model.MatchAnalysis;
 import com.leagueanalyzer.backend.model.ObjectiveContext;
+import com.leagueanalyzer.backend.model.ObjectiveEvent;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -27,7 +29,7 @@ public class MatchAnalysisService {
         this.timeAnalyzer = timeAnalyzer;
     }
 
-    public List<AnalyzedDeath> analyzeDeaths(String matchId, int participantId) throws Exception {
+    public MatchAnalysis analyzeMatch(String matchId, int participantId) throws Exception {
         String timelineJson = riotApiClient.getTimeline(matchId);
         String matchJson = riotApiClient.getMatchDetails(matchId);
 
@@ -51,7 +53,25 @@ public class MatchAnalysisService {
                 )
             ));
         }
-        return analyzed;
+
+        List<ObjectiveEvent> ledger = new ArrayList<>();
+        for (ObjectiveAnalyzer.ObjectiveTaken taken : objectives.objectivesTaken()) {
+            ledger.add(new ObjectiveEvent(
+                taken.monster(),
+                taken.subType(),
+                formatTimestamp(taken.timestampMs()),
+                taken.timestampMs(),
+                taken.teamId(),
+                taken.teamId() == playerTeamId
+            ));
+        }
+
+        return new MatchAnalysis(playerTeamId, analyzed, ledger);
+    }
+
+    private String formatTimestamp(long timestampMs) {
+        long totalSeconds = timestampMs / 1000;
+        return String.format("%02d:%02d", totalSeconds / 60, totalSeconds % 60);
     }
 
     /** Riot puts the participant -> team mapping in match details, not the timeline. */

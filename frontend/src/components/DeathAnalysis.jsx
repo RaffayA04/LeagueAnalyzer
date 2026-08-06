@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react'
 import Minimap from './Minimap'
-import { summarize, buildChips, coachLine } from '../stats'
+import ObjectiveLedger from './ObjectiveLedger'
+import { summarize, buildChips, coachLine, objectiveShort, nextObjectiveAfter } from '../stats'
 
-export default function DeathAnalysis({ deaths, matchId, player }) {
+export default function DeathAnalysis({ deaths, objectives = [], matchId, player }) {
   const [hover, setHover] = useState(null)
   const [filter, setFilter] = useState(null)
 
   const summary = useMemo(() => summarize(deaths), [deaths])
   const chips = useMemo(() => buildChips(summary), [summary])
-  const coach = coachLine(deaths, summary, hover, filter)
+  const coach = coachLine(deaths, summary, hover, filter, objectives)
 
   const clearHover = () => setHover(null)
   const toggleHover = (i) => setHover((h) => (h === i ? null : i))
@@ -121,6 +122,7 @@ export default function DeathAnalysis({ deaths, matchId, player }) {
 
       {summary.total > 0 && (
         <div className="list-section">
+          <ObjectiveLedger objectives={objectives} />
           <div className="chips">
             <span className="label">ALL DEATHS</span>
             {chips.map((c) => {
@@ -165,7 +167,11 @@ export default function DeathAnalysis({ deaths, matchId, player }) {
                       <strong>{d.killer}</strong>
                     </span>
                   </span>
-                  {d.obj && <span className="obj">{d.obj === 'baron' ? 'BARON' : 'DRAKE'}</span>}
+                  {d.obj && (
+                    <span className={`obj ${objTone(d, objectives)}`}>
+                      {d.obj === 'baron' ? 'BARON' : 'DRAKE'}
+                    </span>
+                  )}
                 </button>
               )
             })}
@@ -213,6 +219,13 @@ function Lead({ summary }) {
     )
   }
   return <>No single killer or location stands out — they were spread across the map.</>
+}
+
+/** Colour the row tag by who ended up taking the objective that was up. */
+function objTone(d, objectives) {
+  const next = nextObjectiveAfter(objectives, d.obj === 'baron' ? 'BARON_NASHOR' : 'DRAGON', d.tMs)
+  if (!next) return 'none'
+  return next.myTeam ? 'mine' : 'theirs'
 }
 
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']

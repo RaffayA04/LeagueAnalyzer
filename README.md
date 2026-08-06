@@ -26,32 +26,48 @@ That last group is the point of the project. Location alone is reporting; locati
 `GET /api/analysis/NA1_5123456789/3`
 
 ```json
-[
-  {
-    "death": {
-      "timestamp": "27:15",
-      "timestampMs": 1635000,
-      "killerChampion": "LeeSin",
-      "assistChampions": "Ahri, Thresh",
-      "x": 2900,
-      "y": 11200,
-      "pixelX": 103,
-      "pixelY": 129,
-      "zone": "Baron Pit"
-    },
-    "objectives": {
-      "baronAlive": true,
-      "dragonAlive": true,
-      "lastBaronTakenBy": null,
-      "lastDragonTakenBy": 200,
-      "myTeamTookLastBaron": false,
-      "myTeamTookLastDragon": false
+{
+  "playerTeamId": 200,
+  "deaths": [
+    {
+      "death": {
+        "timestamp": "27:15",
+        "timestampMs": 1635000,
+        "killerChampion": "LeeSin",
+        "assistChampions": "Ahri, Thresh",
+        "x": 2900,
+        "y": 11200,
+        "pixelX": 103,
+        "pixelY": 129,
+        "zone": "Baron Pit"
+      },
+      "objectives": {
+        "baronAlive": true,
+        "dragonAlive": true,
+        "lastBaronTakenBy": null,
+        "lastDragonTakenBy": 200,
+        "myTeamTookLastBaron": false,
+        "myTeamTookLastDragon": false
+      }
     }
-  }
-]
+  ],
+  "objectives": [ /* the ledger, below */ ]
+}
 ```
 
 Read that as: *you died in the Baron pit while Baron was up, with the enemy team holding the last two dragons.* A heatmap alone would have shown a dot near Baron and told you nothing.
+
+Alongside the deaths, the response carries the game's **objective ledger** — every Baron and Dragon that fell, when, and to which team:
+
+```json
+"objectives": [
+  { "monster": "DRAGON", "subType": "HEXTECH_DRAGON", "timestamp": "07:38", "teamId": 200, "myTeam": true },
+  { "monster": "BARON_NASHOR", "subType": null, "timestamp": "27:35", "teamId": 200, "myTeam": true },
+  { "monster": "BARON_NASHOR", "subType": null, "timestamp": "40:16", "teamId": 100, "myTeam": false }
+]
+```
+
+This is what makes the per-death flags mean anything. `baronAlive: true` on its own is a fact without a consequence; read against the ledger it becomes *"you died in the river at 27:11 with Baron up — your team took it 23 seconds later."* The per-death fields look backwards (who took the **last** one); the ledger is what lets the frontend look forwards to who took **this** one.
 
 ---
 
@@ -92,7 +108,7 @@ Controller  ──►  Service / Analyzer  ──►  RiotApiClient  ──►  
 | `GET` | `/api/match/{matchId}` | Raw Riot match detail JSON |
 | `GET` | `/api/timeline/{matchId}` | Raw Riot timeline JSON |
 | `GET` | `/api/deaths/{matchId}/{participantId}` | `List<DeathEvent>` — location and killer only |
-| `GET` | `/api/analysis/{matchId}/{participantId}` | `List<AnalyzedDeath>` — **deaths + objective context** |
+| `GET` | `/api/analysis/{matchId}/{participantId}` | `MatchAnalysis` — **deaths + objective context + the objective ledger** |
 
 `/api/analysis` is the endpoint that matters; `/api/deaths` is the layer beneath it.
 

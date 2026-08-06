@@ -242,6 +242,46 @@ h1.headline .count { color: var(--red); }
 }
 @media (max-width: 700px) { .list-section { padding: 16px 14px 24px; } }
 
+/* ---------- objective ledger ---------- */
+
+.ledger {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--line-soft);
+  margin-bottom: 4px;
+}
+.ledger-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+}
+.ledger .label {
+  font-weight: 700; font-size: 10px; letter-spacing: .14em; color: var(--gold); flex: none;
+}
+/* Wraps rather than scrolls: a clipped objective is a hidden one. */
+.ledger-strip { display: flex; flex-wrap: wrap; gap: 6px; }
+.ledger-empty { font-size: 13px; color: var(--fainter); }
+.ledger-tally {
+  font-family: var(--mono); font-size: 11px; color: var(--fainter); flex: none; white-space: nowrap;
+}
+
+.obj-chip {
+  display: inline-flex; align-items: baseline; gap: 7px;
+  padding: 4px 9px; border-radius: 4px; white-space: nowrap;
+  border: 1px solid var(--line); background: var(--card);
+}
+.obj-chip .obj-time { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.obj-chip .obj-name { font-size: 12px; font-weight: 600; color: var(--ink); }
+.obj-chip .obj-side { font-size: 9px; font-weight: 700; letter-spacing: .1em; }
+
+.obj-chip.mine { border-color: rgba(46, 102, 199, .45); background: rgba(46, 102, 199, .07); }
+.obj-chip.mine .obj-side { color: var(--blue); }
+.obj-chip.theirs { border-color: rgba(194, 69, 64, .40); background: rgba(194, 69, 64, .06); }
+.obj-chip.theirs .obj-side { color: var(--red); }
+
+/* Row tag takes the colour of whoever ended up taking it. */
+.row .obj.mine { color: var(--blue); }
+.row .obj.theirs { color: var(--red); }
+.row .obj.none { color: var(--fainter); }
+
 .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .chips .label {
   font-weight: 700; font-size: 10px; letter-spacing: .14em; color: var(--fainter);
