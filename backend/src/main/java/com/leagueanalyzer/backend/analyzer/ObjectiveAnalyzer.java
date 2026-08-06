@@ -2,13 +2,22 @@ package com.leagueanalyzer.backend.analyzer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ObjectiveAnalyzer {
+    private static final int DRAGONS_FOR_SOUL = 4;
+
     private record ObjectiveKill(long timestamp, int teamId) {}
     private final List<ObjectiveKill> baronKills = new ArrayList<>();
     private final List<ObjectiveKill> dragonKills = new ArrayList<>();
+    private final Map<Integer, Integer> dragonsByTeam = new HashMap<>();
     private final int playerTeamId;
+
+    // When a team takes its 4th dragon it earns soul, and elemental drakes stop
+    // spawning for the rest of the game. Null if no team got there.
+    private Long soulTime = null;
 
     public ObjectiveAnalyzer(String timelineJson, int playerTeamId) throws Exception {
         JsonNode timeline = new ObjectMapper().readTree(timelineJson);
@@ -26,7 +35,13 @@ public class ObjectiveAnalyzer {
                 int teamId = event.get("killerTeamId").asInt();
                 long time = event.get("timestamp").asLong();
                 if(monster.equals("BARON_NASHOR")) { baronKills.add(new ObjectiveKill(time, teamId));}
-                if(monster.equals("DRAGON") && (!subtype.equals("ELDER_DRAGON"))) { dragonKills.add(new ObjectiveKill (time, teamId));}
+                if(monster.equals("DRAGON") && (!subtype.equals("ELDER_DRAGON"))) {
+                    dragonKills.add(new ObjectiveKill (time, teamId));
+
+                    int taken = dragonsByTeam.getOrDefault(teamId, 0) + 1;
+                    dragonsByTeam.put(teamId, taken);
+                    if (taken == DRAGONS_FOR_SOUL && soulTime == null) { soulTime = time; }
+                }
             }
         }
     }
@@ -41,7 +56,12 @@ public class ObjectiveAnalyzer {
         return deathTime >= baronSpawn;
     }
 
+    // True if an elemental drake was up. Elder is a separate objective on its own
+    // timer and is deliberately not covered here.
     public boolean wasDragonAlive(long deathTime) {
+        // Once a team has soul, elemental drakes stop spawning for the rest of the game.
+        if (soulTime != null && deathTime >= soulTime) return false;
+
         long dragonSpawn = 5 * 60 * 1000;
 
         for (ObjectiveKill kill : dragonKills) {

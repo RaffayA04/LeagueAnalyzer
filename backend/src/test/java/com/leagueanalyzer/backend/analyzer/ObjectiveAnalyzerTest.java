@@ -21,6 +21,18 @@ public class ObjectiveAnalyzerTest {
     }
 
     @Test
+    void elementalDrakesStopSpawningAfterSoul() throws Exception {
+        String json = loadFromResources("fixtures/timeline_NA1_5602190523.json");
+        ObjectiveAnalyzer analyzer = new ObjectiveAnalyzer(json, 200);
+
+        // team 200 took their 4th dragon at 1520364 (25:20), earning soul
+        assertTrue(analyzer.wasDragonAlive(1500000), "25:00, respawned at 24:48, soul drake still up");
+        assertFalse(analyzer.wasDragonAlive(1400000), "23:20, third drake still respawning");
+        assertFalse(analyzer.wasDragonAlive(1900000), "31:40, post-soul, elementals no longer spawn");
+        assertFalse(analyzer.wasDragonAlive(2400000), "40:00, still nothing but Elder");
+    }
+
+    @Test
     void tracksWhichTeamTookEachObjective() throws Exception {
         String json = loadFromResources("fixtures/timeline_NA1_5602190523.json");
         ObjectiveAnalyzer analyzer = new ObjectiveAnalyzer(json, 200);
