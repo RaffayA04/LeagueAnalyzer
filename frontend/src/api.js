@@ -9,17 +9,41 @@ class ApiError extends Error {
   }
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// Free hosting sleeps after 15 minutes idle and takes ~a minute to wake. During
+// that window requests either hang or come back 502/503/504, so the first call
+// is retried rather than reported as a failure.
+const WAKING = new Set([502, 503, 504])
+const MAX_WAIT_MS = 90_000
+
 async function get(path) {
-  let res
-  try {
-    res = await fetch(`${BASE}${path}`)
-  } catch {
-    throw new ApiError("Couldn't reach the server. Is the backend running?", 0)
-  }
-  if (!res.ok) {
+  const started = Date.now()
+  let attempt = 0
+
+  while (true) {
+    attempt++
+    let res
+    try {
+      res = await fetch(`${BASE}${path}`)
+    } catch {
+      if (Date.now() - started < MAX_WAIT_MS) {
+        await sleep(Math.min(1000 * attempt, 5000))
+        continue
+      }
+      throw new ApiError("Couldn't reach the server. It may be starting up — try again in a minute.", 0)
+    }
+
+    if (res.ok) return res.json()
+
+    if (WAKING.has(res.status) && Date.now() - started < MAX_WAIT_MS) {
+      await sleep(Math.min(1000 * attempt, 5000))
+      continue
+    }
+
+    // 404 from the player lookup is a real answer, not a transient failure.
     throw new ApiError(`Request failed (${res.status})`, res.status)
   }
-  return res.json()
 }
 
 export function findPlayer(gameName, tagLine) {

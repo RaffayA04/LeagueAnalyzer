@@ -409,6 +409,7 @@ h1.headline .count { color: var(--red); }
 }
 .loading .what { font-size: 15px; color: var(--ink-2); }
 .loading .why { font-size: 13px; color: var(--fainter); }
+.loading .why.elapsed { font-family: var(--mono); font-size: 11px; margin-top: 2px; }
 
 .skel {
   height: 3px; width: 180px; margin: 6px auto 0;

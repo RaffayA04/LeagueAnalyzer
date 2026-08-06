@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DeathAnalysis from './components/DeathAnalysis'
 import { findPlayer, findMatches, findParticipantId, findAnalysis } from './api'
 import { toDeaths } from './stats'
@@ -143,12 +143,33 @@ export default function App() {
   )
 }
 
+/**
+ * A silent spinner during a 60-second cold start reads as a broken site. This
+ * escalates its explanation the longer the wait runs, so a slow first request
+ * looks like a known tradeoff rather than a hang.
+ */
 function Busy({ what }) {
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    setElapsed(0)
+    const id = setInterval(() => setElapsed((e) => e + 1), 1000)
+    return () => clearInterval(id)
+  }, [what])
+
+  let why = "Riot's timeline is about 1.2 MB, so this takes a moment."
+  if (elapsed >= 20) {
+    why = 'Still waking up. A cold start takes about a minute — it stays fast afterwards.'
+  } else if (elapsed >= 5) {
+    why = 'The server sleeps when idle on free hosting, so the first request has to wake it.'
+  }
+
   return (
     <div className="loading">
       <span className="what">{what}…</span>
-      <span className="why">Riot's timeline is about 1.2 MB, so this takes a moment.</span>
+      <span className="why">{why}</span>
       <span className="skel" />
+      {elapsed >= 5 && <span className="why elapsed">{elapsed}s</span>}
     </div>
   )
 }
