@@ -204,8 +204,6 @@ Player search, match picker, and the per-match death analysis are built: a CSS-d
 **Phase 6 — Replay rendering** *(separate track, deliberately deferred)*
 `.rofl` processing and GPU clip generation. Coaching does not depend on rendered video, which is why this sits last rather than blocking the product.
 
-Full detail in [`PRD.md`](PRD.md).
-
 ---
 
 ## Tech stack
