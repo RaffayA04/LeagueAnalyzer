@@ -6,7 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 LeagueAnalyzer is a Spring Boot REST backend that fetches League of Legends match data from the Riot Games API and analyzes it. It locates and classifies a player's death events on the Summoner's Rift map, and — as of Phase 1 — joins each death with the **objective state of the game at that moment** (was Baron up, was Dragon up, which team took each last). That join is the product's reason to exist: death locations alone are reporting; death locations plus objective context are the beginning of coaching.
 
-All backend code lives under `backend/` (a single Maven module, Java 17, Spring Boot 3.4.1). A React frontend is in progress and not yet in this tree.
+All backend code lives under `backend/` (a single Maven module, Java 17, Spring Boot 3.4.1). The React frontend lives under `frontend/` (Vite, plain CSS, no UI framework) and consumes `GET /api/analysis/{matchId}/{participantId}`.
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173, proxies /api to :8080
+npm run build      # static bundle into dist/
+```
+
+The dev server proxies `/api` so the browser sees one origin. Deployed, the frontend calls the backend cross-origin — set `VITE_API_BASE` to the backend's URL and add that frontend origin to `frontend.origins` (see `config/WebConfig`), or CORS will block every request.
 
 The product vision, roadmap, and phase sequencing live in `PRD.md` at the repo root — read it before planning new features. In short: the near-term goal is automated mistake detection and AI coaching driven by timeline analysis; rendered replay video is a deliberately deferred, separate track (not required for coaching).
 
