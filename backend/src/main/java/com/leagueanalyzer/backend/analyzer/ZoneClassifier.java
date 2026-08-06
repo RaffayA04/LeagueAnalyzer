@@ -13,7 +13,11 @@ import org.springframework.stereotype.Component;
  *
  * Those two diagonals cross at the centre and cut the remaining space into the
  * four jungle quadrants. Checks are ordered most specific first, and the first
- * match wins.
+ * match wins: pits, bases, lanes, mid, river, then jungle.
+ *
+ * Mid deliberately outranks the river. On the real map mid lane runs straight
+ * through the river rather than stopping at it, so the river is two separate
+ * arms — Baron side and Dragon side — not one continuous band.
  */
 @Component
 public class ZoneClassifier {
@@ -30,10 +34,23 @@ public class ZoneClassifier {
     private static final int LANE_DEPTH = 1700;
     private static final int BASE_DEPTH = 2800;
 
+    // The Baron pit is sized around the three things that share it — Baron
+    // (5007, 10471), Rift Herald (4800, 9894) and the Void Grubs (4790, 10182) —
+    // centred on their centroid rather than on Baron, which sits at the back.
+    private static final int BARON_PIT_X = 4900;
+    private static final int BARON_PIT_Y = 10180;
+    private static final int PIT_HALF_SIZE = 700;
+
+    // Summoner's Rift is 180-degree rotationally symmetric, so the Dragon pit is
+    // the Baron pit reflected through the map's centre. Derived, not measured,
+    // so the two can never drift apart.
+    private static final int DRAGON_PIT_X = MAP_MAX - BARON_PIT_X;
+    private static final int DRAGON_PIT_Y = MAP_MAX - BARON_PIT_Y;
+
     public String getZone(int x, int y) {
         // Pits sit inside the river, so they have to be tested before it.
-        if (inBox(x, y, 3800, 9300, 6200, 11700)) return "Baron Pit";
-        if (inBox(x, y, 8700, 3200, 11100, 5600)) return "Dragon Pit";
+        if (inPit(x, y, BARON_PIT_X, BARON_PIT_Y)) return "Baron Pit";
+        if (inPit(x, y, DRAGON_PIT_X, DRAGON_PIT_Y)) return "Dragon Pit";
 
         if (x <= BASE_DEPTH && y <= BASE_DEPTH) return "Blue Base";
         if (x >= MAP_MAX - BASE_DEPTH && y >= MAP_MAX - BASE_DEPTH) return "Red Base";
@@ -43,8 +60,11 @@ public class ZoneClassifier {
         if (x <= LANE_DEPTH || y >= MAP_MAX - LANE_DEPTH) return "Top Lane";
         if (y <= LANE_DEPTH || x >= MAP_MAX - LANE_DEPTH) return "Bot Lane";
 
-        if (Math.abs(x + y - MAP_MAX) <= RIVER_HALF_WIDTH) return "River";
+        // Mid is tested before the river. Mid lane crosses the river rather than
+        // being interrupted by it, so the river resolves as two arms — one on the
+        // Baron side, one on the Dragon side — with a gap where mid cuts through.
         if (Math.abs(x - y) <= MID_HALF_WIDTH) return "Mid Lane";
+        if (Math.abs(x + y - MAP_MAX) <= RIVER_HALF_WIDTH) return "River";
 
         // Everything left over is jungle. The river separates blue's half from
         // red's; the mid diagonal separates the top side from the bottom.
@@ -54,7 +74,8 @@ public class ZoneClassifier {
         return topSide ? "Red Top Jungle" : "Red Bot Jungle";
     }
 
-    private boolean inBox(int x, int y, int minX, int minY, int maxX, int maxY) {
-        return x >= minX && x <= maxX && y >= minY && y <= maxY;
+    private boolean inPit(int x, int y, int centreX, int centreY) {
+        return Math.abs(x - centreX) <= PIT_HALF_SIZE
+            && Math.abs(y - centreY) <= PIT_HALF_SIZE;
     }
 }

@@ -9,11 +9,19 @@ class ZoneClassifierTest {
 
     // Objectives spawn at fixed spots, so their positions are free ground truth.
     // These came out of a real timeline (match NA1_5602190523).
+    // Baron, Rift Herald and the Void Grubs all spawn in the same pit, so the box
+    // has to be wide enough to hold all three — not just centred on Baron.
+    // Positions are real, taken from timeline data.
     @Test
-    void landmarksLandInTheirOwnZone() {
-        assertEquals("Baron Pit", classifier.getZone(5007, 10471), "Baron's actual spawn");
+    void everythingThatSharesTheBaronPitLandsInIt() {
+        assertEquals("Baron Pit", classifier.getZone(5007, 10471), "Baron");
+        assertEquals("Baron Pit", classifier.getZone(4800, 9894), "Rift Herald");
+        assertEquals("Baron Pit", classifier.getZone(4790, 10182), "Void Grubs");
+    }
+
+    @Test
+    void dragonLandsInItsOwnPit() {
         assertEquals("Dragon Pit", classifier.getZone(9857, 4422), "Dragon's actual spawn");
-        assertEquals("Baron Pit", classifier.getZone(4800, 9894), "Rift Herald shares the Baron pit");
     }
 
     @Test
@@ -32,9 +40,19 @@ class ZoneClassifierTest {
         assertEquals("River", classifier.getZone(6240, 8154), "top-side river");
         assertEquals("River", classifier.getZone(8300, 6400), "bot-side river");
 
-        // The two diagonals cross at the centre of the map, where mid lane runs
-        // through the river. River wins there, which matches the real map.
-        assertEquals("River", classifier.getZone(7400, 7400), "mid crossing the river");
+        // Mid lane runs straight through the river rather than stopping at it, so
+        // the crossing at map centre is mid.
+        assertEquals("Mid Lane", classifier.getZone(7400, 7400), "mid cuts through the river");
+    }
+
+    @Test
+    void theRiverIsTwoArmsSplitByMidLane() {
+        // Walking the river diagonal from the Baron side to the Dragon side:
+        // river, then a gap where mid crosses, then river again. Both sample
+        // points sit on x + y = 14870 but outside either pit box.
+        assertEquals("River", classifier.getZone(6600, 8270), "Baron-side arm");
+        assertEquals("Mid Lane", classifier.getZone(7435, 7435), "the gap where mid crosses");
+        assertEquals("River", classifier.getZone(8270, 6600), "Dragon-side arm");
     }
 
     @Test
