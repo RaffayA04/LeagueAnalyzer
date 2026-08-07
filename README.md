@@ -125,7 +125,7 @@ the river  runs along   x + y == 14870      (the perpendicular diagonal)
 
 Both are confirmed against fixed landmarks — Baron spawns at `(5007, 10471)` and Dragon at `(9857, 4422)`, and both sit on the river diagonal. Those two lines also cut the remaining space into the four jungle quadrants: the river separates blue's half from red's, the mid diagonal separates the top side from the bottom.
 
-Checks are ordered and **the first match wins**: pits → bases → lanes → river → mid → jungle. Where mid crosses the river at the map's centre, river wins, which matches the real map.
+Checks are ordered and **the first match wins**: pits → bases → lanes → mid → river → jungle. Mid deliberately outranks the river — on the real map mid lane runs straight through the river rather than stopping at it, so the river resolves as **two separate arms**, Baron side and Dragon side, with a gap where mid crosses.
 
 Both outer lanes are **L-shaped** — top runs up the left edge *and* across the top; bot runs along the bottom *and* up the right edge. `LANE_DEPTH` and `BASE_DEPTH` are tuning constants rather than derived facts: because the two L-shapes wrap the whole perimeter, lane depth trades directly against jungle area.
 

@@ -9,8 +9,13 @@ export function toDeaths(analysis) {
       zone: d.zone,
       killer: d.killerChampion,
       assists: d.assistChampions,
+      // Pixel coords are kept for any consumer plotting onto a 512px image.
       x: d.pixelX,
       y: d.pixelY,
+      // World coords are what the minimap plots from — the same numbers the map
+      // itself is built out of, so a dot and its region cannot disagree.
+      wx: d.x,
+      wy: d.y,
       // Baron outranks Drake when both happen to be up.
       obj: o.baronAlive ? 'baron' : o.dragonAlive ? 'drake' : null,
       objTakenByMyTeam: o.baronAlive ? o.myTeamTookLastBaron : o.myTeamTookLastDragon,

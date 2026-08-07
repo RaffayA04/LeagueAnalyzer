@@ -15,7 +15,12 @@
   --blue-dark: #1d4e9e;
   --red: #c24540;
   --gold: #a87e2f;
-  --map: #ede9df;
+  --jungle: #c4bda4;
+  --lane: #f8f5ee;
+  --river: rgba(56, 116, 150, .34);
+  --pit: rgba(168, 126, 47, .30);
+  --pit-line: rgba(168, 126, 47, .55);
+  --map-ink: #7a7460;
   --hover: #f1ede2;
 
   --sans: 'Archivo', system-ui, -apple-system, sans-serif;
@@ -163,61 +168,50 @@ h1.headline .count { color: var(--red); }
   position: relative;
   width: 100%;
   aspect-ratio: 1;
-  background: var(--map);
+  /* The base surface is jungle; lanes are painted on top of it. */
+  background: var(--jungle);
   border: 1px solid var(--line);
   border-radius: 6px;
   overflow: hidden;
 }
 
-.map .river {
-  position: absolute; left: -20%; top: calc(50% - 23px);
-  width: 140%; height: 46px;
-  background: rgba(46, 105, 140, .12);
-  transform: rotate(45deg);
-}
-.map .mid {
-  position: absolute; left: -20%; top: 50%;
-  width: 140%; height: 2px;
-  background: #d7d2c5;
-  transform: rotate(-45deg);
-}
-.map .base {
-  position: absolute; width: 15%; height: 15%;
-}
-.map .base.blue {
-  left: 2%; bottom: 2%; border-radius: 0 100% 0 0;
-  background: rgba(46, 102, 199, .10); border: 1px solid rgba(46, 102, 199, .28);
-}
-.map .base.red {
-  right: 2%; top: 2%; border-radius: 0 0 0 100%;
-  background: rgba(194, 69, 64, .08); border: 1px solid rgba(194, 69, 64, .28);
-}
-.map .lane { position: absolute; background: #ddd8cb; }
-.map .lane.top-v { left: 8%; top: 8%; width: 2px; height: 84%; }
-.map .lane.top-h { left: 8%; top: 8%; width: 84%; height: 2px; }
-.map .lane.bot-v { right: 8%; bottom: 8%; width: 2px; height: 84%; }
-.map .lane.bot-h { right: 8%; bottom: 8%; width: 84%; height: 2px; }
+/* Painted in reverse of the classifier's check order, so what sits on top is
+   also what wins the classification. */
+.map .m-river,
+.map .m-mid,
+.map .m-lane,
+.map .m-base,
+.map .m-pit { position: absolute; }
 
-.map .pit {
-  position: absolute; width: 9px; height: 9px;
-  background: #cfc9ba;
-  transform: translate(-50%, -50%) rotate(45deg);
+.map .m-river { background: var(--river); }
+.map .m-mid   { background: var(--lane); box-shadow: 0 0 0 1px rgba(120, 112, 90, .16); }
+.map .m-lane  { background: var(--lane); box-shadow: 0 0 0 1px rgba(120, 112, 90, .16); }
+
+.map .m-base { border: 1px solid transparent; }
+/* Square, because the classifier bounds them as squares. A quarter-circle would
+   look nicer and would lie about where the region actually ends. */
+.map .m-base.blue { background: rgba(46, 102, 199, .15); border-color: rgba(46, 102, 199, .32); }
+.map .m-base.red  { background: rgba(194, 69, 64, .13); border-color: rgba(194, 69, 64, .32); }
+
+.map .m-pit {
+  transform: translate(-50%, -50%);
+  background: var(--pit);
+  border: 1px solid var(--pit-line);
+  border-radius: 3px;
 }
 
 .map .zone-label {
   position: absolute;
+  transform: translate(-50%, -50%);
   font-weight: 700;
   font-size: 9px;
   letter-spacing: .16em;
-  color: var(--fainter);
+  color: var(--map-ink);
   pointer-events: none;
   white-space: nowrap;
+  z-index: 3;
 }
-.map .zone-label.jgl { font-size: 8px; letter-spacing: .14em; color: var(--faintest); }
-@media (max-width: 480px) {
-  .map .zone-label { font-size: 8px; }
-  .map .zone-label.jgl { font-size: 7px; }
-}
+@media (max-width: 480px) { .map .zone-label { font-size: 8px; letter-spacing: .1em; } }
 
 .map .death {
   position: absolute;

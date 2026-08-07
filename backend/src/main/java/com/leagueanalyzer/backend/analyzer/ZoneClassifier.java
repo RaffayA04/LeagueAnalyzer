@@ -26,8 +26,8 @@ public class ZoneClassifier {
     // Blue base sits at low x / low y; red base at high x / high y.
     private static final int MAP_MAX = 14870;
 
-    private static final int MID_HALF_WIDTH = 1500;
-    private static final int RIVER_HALF_WIDTH = 1500;
+    private static final int MID_HALF_WIDTH = 800;
+    private static final int RIVER_HALF_WIDTH = 700;
 
     // How far in from an edge still counts as lane, and the corner square
     // around each nexus that counts as base.
