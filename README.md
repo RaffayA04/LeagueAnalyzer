@@ -108,9 +108,36 @@ Controller  ──►  Service / Analyzer  ──►  RiotApiClient  ──►  
 | `GET` | `/api/match/{matchId}` | Raw Riot match detail JSON |
 | `GET` | `/api/timeline/{matchId}` | Raw Riot timeline JSON |
 | `GET` | `/api/deaths/{matchId}/{participantId}` | `List<DeathEvent>` — location and killer only |
-| `GET` | `/api/analysis/{matchId}/{participantId}` | `MatchAnalysis` — **deaths + objective context + the objective ledger** |
+| `GET` | `/api/analysis/{matchId}/{participantId}` | `MatchAnalysis` — deaths + objective context + the objective ledger, for one game |
+| `GET` | `/api/overview/{puuid}?count=20` | `PlayerOverview` — **every ranked-solo game the app opens on, in one call** |
 
-`/api/analysis` is the endpoint that matters; `/api/deaths` is the layer beneath it.
+`/api/overview` is the endpoint that matters now; `/api/analysis` is the per-game
+deep dive beneath it, and `/api/deaths` the layer beneath that.
+
+### `/api/overview`
+
+Returns up to twenty Ranked Solo games, each with champion, result, K/D/A,
+duration, its analyzed deaths and its objective ledger. Queue-locked to 420 so
+every game is Summoner's Rift — `ZoneClassifier` only models that map, and an
+ARAM game would plot deaths onto a map it was never played on.
+
+Twenty games is forty Riot calls. Three things make that viable:
+
+- **A cache of the derived result, not the JSON.** A timeline is ~775 KB, which
+  is ~1.5 MB as a Java `String` and far more as a parsed tree. The `GameSummary`
+  it becomes is a few KB, and it is the expensive half anyway — a round trip
+  plus a parse. A finished match is immutable, so entries are evicted for space,
+  never for staleness.
+- **Six workers.** The number comes from Riot's 20-requests-per-second limit,
+  not from the machine. The pool size is also the memory ceiling: at most six
+  timelines exist at once, so peak heap is a constant rather than something that
+  grows with the number of games requested.
+- **A sliding-window limiter in the client**, so every caller is paced rather
+  than each feature politely staying under the ceiling on its own.
+
+Cold, against a real account: **2.83s for twenty games with no rate-limit
+retries. Warm: 53ms.** Games that fail carry a `status` rather than vanishing —
+a dropped game would leave the heatmap claiming a sample it is not plotting.
 
 ### Map regions
 
@@ -191,12 +218,24 @@ Stated plainly, because they're real and they shape what comes next.
 
 - **Match lookups are hardcoded to the 10 most recent games** (`start=0&count=10`). No pagination, no date filtering.
 - **Region is hardcoded to `americas`.** Players on other regional routing hosts won't resolve.
-- **No caching and no rate-limit handling.** Analyzing a single match costs 2 Riot calls; analyzing 10 costs 20–30. Development keys throttle almost immediately at that volume, so multi-match analysis is blocked until a caching layer exists.
-- **No persistence.** Every request re-fetches from Riot. Nothing is stored between runs.
+- **The cache is in memory and per-instance.** Bounded to 500 analyzed games and
+  lost on restart. It makes twenty-game analysis practical, but it is not
+  persistence — the first load after a deploy pays full price.
+- **No database.** Nothing survives a restart, so there is no history across
+  sessions and no cross-player aggregation.
+- **The 100-requests-per-two-minutes budget is the real ceiling.** At forty
+  calls per cold overview that is two fresh analyses per two minutes across all
+  users. The cache is what keeps that from mattering; a production key is what
+  would remove it.
 - **Errors are swallowed.** `SummonerService` returns `null` and `TimeAnalyzer` returns an empty list when parsing fails, so a failure is currently indistinguishable from a legitimately empty result. This needs real error propagation.
 - **Test coverage is uneven.** The analyzers are covered against a real committed timeline fixture; the client, services, and controllers are not tested at all.
-- **The match picker shows raw match IDs.** Riot's match-list endpoint returns nothing but IDs, so champion, queue type, and K/D/A would each cost an extra match-detail call. That belongs behind a summary endpoint once caching exists.
-- **The frontend resolves participant IDs the expensive way.** `/api/analysis` is keyed by participant number, so the browser fetches full match detail just to map a PUUID to a participant.
+- **The river is modelled as a straight band.** The real river winds, so deaths
+  in its outer bends classify as jungle and some jungle deaths near the inner
+  bends classify as River. Invisible against a drawn map that shared the same
+  approximation; visible now that the map is real terrain.
+- **The map art and champion splashes are Riot's.** The minimap ships as a
+  static asset and splash art is hotlinked from Data Dragon, which serves
+  default skins only.
 
 ---
 
@@ -205,17 +244,25 @@ Stated plainly, because they're real and they shape what comes next.
 **Phase 1 — First real coaching insight** ✅ *Complete*
 Objective context analyzer. Deaths joined with Baron/Dragon state at the moment they happened.
 
-**Phase 2 — Visualization primitive**
-Death heatmap over the minimap, using the pixel coordinates already produced.
+**Phase 2 — Visualization primitive** ✅ *Complete*
+Every death from twenty games plotted on the Summoner's Rift minimap, with an
+optional binned density layer and a filter for deaths that happened while Baron
+or a Drake was live.
 
-**Phase 3 — Foundation for scale**
-PostgreSQL persistence, plus a caching and rate-limit layer in front of the Riot client. Nothing past Phase 2 is possible without it — multi-match analysis is entirely blocked on this.
+**Phase 3 — Foundation for scale** *Partly done*
+The caching and rate-limit half is in and is what makes twenty-game analysis
+possible. PostgreSQL persistence is not — nothing survives a restart, so history
+across sessions and any cross-player work still wait on it.
 
 **Phase 4 — Core product**
 Mistake detection engine, then an LLM-driven coach reading the structured analysis output.
 
 **Phase 5 — Frontend** *In progress*
-Player search, match picker, and the per-match death analysis are built: a CSS-drawn minimap plotting each death, hover linking the map to the list in both directions, and killer/zone filters. Heatmap rendering and coaching display follow their backend phases.
+The app opens on twenty games rather than one: a Riot ID goes straight to the
+aggregate, and the match picker became a rail inside it that filters the map in
+place. Alongside it, the win-rate split at a draggable death threshold, with the
+sample size shown at every cut. The per-game deep dive is still there, reached
+from the rail. Coaching display follows its backend phase.
 
 **Phase 6 — Replay rendering** *(separate track, deliberately deferred)*
 `.rofl` processing and GPU clip generation. Coaching does not depend on rendered video, which is why this sits last rather than blocking the product.
