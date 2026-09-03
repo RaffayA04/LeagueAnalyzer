@@ -32,9 +32,18 @@ public class MatchAnalysisService {
     public MatchAnalysis analyzeMatch(String matchId, int participantId) throws Exception {
         String timelineJson = riotApiClient.getTimeline(matchId);
         String matchJson = riotApiClient.getMatchDetails(matchId);
+        return analyze(timelineJson, matchJson, participantId, findTeamId(matchJson, participantId));
+    }
 
-        int playerTeamId = findTeamId(matchJson, participantId);
-
+    /**
+     * The assembly step, over JSON the caller already holds.
+     *
+     * The overview fetches twenty matches through its own worker pool and must
+     * not re-fetch them here; splitting the fetch from the analysis is what lets
+     * both callers share this logic instead of keeping two copies of it in step.
+     */
+    public MatchAnalysis analyze(String timelineJson, String matchJson,
+                                 int participantId, int playerTeamId) throws Exception {
         List<DeathEvent> deaths = timeAnalyzer.findDeaths(timelineJson, matchJson, participantId);
         ObjectiveAnalyzer objectives = new ObjectiveAnalyzer(timelineJson, playerTeamId);
 

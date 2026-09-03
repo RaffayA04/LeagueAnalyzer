@@ -24,4 +24,8 @@ COPY --from=build /build/target/*.jar app.jar
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["sh", "-c", "java -jar app.jar --server.port=${PORT}"]
+# The JVM defaults to a quarter of container memory for heap, which on a 512 MB
+# instance is ~128 MB — tight once Jackson holds a ~1.2 MB timeline as a tree
+# alongside Spring's own footprint. 75% leaves room for metaspace and threads
+# while giving the parse enough headroom to avoid constant GC.
+CMD ["sh", "-c", "java -XX:MaxRAMPercentage=75 -jar app.jar --server.port=${PORT}"]
