@@ -3,7 +3,7 @@ import Minimap from './Minimap'
 import ObjectiveLedger from './ObjectiveLedger'
 import { summarize, buildChips, coachLine, objectiveShort, nextObjectiveAfter } from '../stats'
 
-export default function DeathAnalysis({ deaths, objectives = [], matchId, player }) {
+export default function DeathAnalysis({ deaths, objectives = [], matchId, player, onBack }) {
   const [hover, setHover] = useState(null)
   const [filter, setFilter] = useState(null)
 
@@ -25,6 +25,9 @@ export default function DeathAnalysis({ deaths, objectives = [], matchId, player
     <div className="panel">
       <div className="topbar">
         <div className="topbar-meta">
+          <button type="button" className="c-back" onClick={onBack} aria-label="Back to all 20 games">
+            <span aria-hidden="true">←</span>
+          </button>
           <span className="wordmark">
             LEAGUE<span>ANALYZER</span>
           </span>
@@ -111,7 +114,7 @@ export default function DeathAnalysis({ deaths, objectives = [], matchId, player
             deaths={deaths}
             hover={hover}
             filter={filter}
-            showLabels
+            art
             pulse
             onHover={setHover}
             onLeave={clearHover}

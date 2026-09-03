@@ -11,11 +11,13 @@ class ApiError extends Error {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-// Free hosting sleeps after 15 minutes idle and takes ~a minute to wake. During
-// that window requests either hang or come back 502/503/504, so the first call
-// is retried rather than reported as a failure.
-const WAKING = new Set([502, 503, 504])
-const MAX_WAIT_MS = 90_000
+// The backend runs on a paid instance that does not sleep, so there is no
+// cold start to wait out. Redeploys and transient upstream blips can still
+// return 502/503/504 for a few seconds, so a short retry stays worthwhile —
+// but it is measured in seconds now, not the ~90s a free-tier wake needed.
+// Keep this bounded: a long retry turns a genuinely dead backend into a hang.
+const TRANSIENT = new Set([502, 503, 504])
+const MAX_WAIT_MS = 20_000
 
 async function get(path) {
   const started = Date.now()
@@ -31,12 +33,12 @@ async function get(path) {
         await sleep(Math.min(1000 * attempt, 5000))
         continue
       }
-      throw new ApiError("Couldn't reach the server. It may be starting up — try again in a minute.", 0)
+      throw new ApiError("Couldn't reach the server. Check your connection and try again.", 0)
     }
 
     if (res.ok) return res.json()
 
-    if (WAKING.has(res.status) && Date.now() - started < MAX_WAIT_MS) {
+    if (TRANSIENT.has(res.status) && Date.now() - started < MAX_WAIT_MS) {
       await sleep(Math.min(1000 * attempt, 5000))
       continue
     }
@@ -59,8 +61,22 @@ export function findAnalysis(matchId, participantId) {
 }
 
 /**
+ * Every ranked game the overview screen needs, in one request.
+ *
+ * This used to be three calls per game from the browser — match detail to map
+ * puuid to a participant number, then the analysis itself. Twenty games that
+ * way was sixty round trips; the backend now resolves the participant itself.
+ */
+export function findOverview(puuid, count = 20) {
+  return get(`/api/overview/${encodeURIComponent(puuid)}?count=${count}`)
+}
+
+/**
  * The analysis endpoint is keyed by participant id (1-10), but we only know the
  * player's puuid. Match details carries the mapping, so we resolve it here.
+ *
+ * Still used by the single-match deep dive reached from the rail. The overview
+ * no longer needs it.
  */
 export async function findParticipantId(matchId, puuid) {
   const match = await get(`/api/match/${encodeURIComponent(matchId)}`)

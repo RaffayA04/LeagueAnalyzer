@@ -69,3 +69,76 @@ export const REGION_LABELS = [
   { text: 'BARON', x: BARON_PIT.x, y: BARON_PIT.y + PIT_HALF * 1.9 },
   { text: 'DRAKE', x: DRAGON_PIT.x, y: DRAGON_PIT.y - PIT_HALF * 1.9 },
 ]
+
+/**
+ * Density binning for the aggregate heatmap.
+ *
+ * Individual dots stop reading as density somewhere past forty points — twenty
+ * games is around a hundred, so the map has to bin. Eighteen cells a side is
+ * the coarsest grid that still resolves a lane from the jungle beside it.
+ */
+export const HEAT_BINS = 18
+
+export function binDeaths(deaths, bins = HEAT_BINS) {
+  const counts = new Map()
+  for (const d of deaths) {
+    const bx = Math.min(bins - 1, Math.floor((d.wx / MAP_MAX) * bins))
+    const by = Math.min(bins - 1, Math.floor((d.wy / MAP_MAX) * bins))
+    const key = by * bins + bx
+    counts.set(key, (counts.get(key) || 0) + 1)
+  }
+  return [...counts].map(([key, n]) => {
+    const bx = key % bins
+    const by = (key - bx) / bins
+    return { n, ...toPercent(((bx + 0.5) / bins) * MAP_MAX, ((by + 0.5) / bins) * MAP_MAX) }
+  })
+}
+
+/** Coldest to hottest. Mirrors --river through --gold to --red. */
+export const HEAT_RAMP = ['#25525f', '#3a8a9c', '#4ec3d9', '#d8a343', '#e2564f']
+
+/**
+ * Peak density across a reference set, so a filtered view normalises against
+ * the whole sample rather than against itself. Without this, selecting a single
+ * game re-scales one death into the hottest colour on the ramp and a quiet game
+ * renders as a hotspot.
+ */
+export const peakDensity = (deaths, bins = HEAT_BINS) =>
+  Math.max(1, ...binDeaths(deaths, bins).map((c) => c.n))
+
+/* ------------------------------------------------------------------
+ * The client minimap art (public/rift.webp)
+ *
+ * The image is not a tight crop of the playable area — it carries a
+ * decorative frame, and it pads its right and bottom edges — so world
+ * coordinates map into a sub-square of it rather than the whole file.
+ *
+ * Calibrated by placing the four lane corners over the art. Those corners are
+ * the playable square's corners by definition (mid runs world (0,0) to
+ * (MAP_MAX, MAP_MAX); the river runs the other diagonal), so they fix the
+ * mapping directly. All four land within 0.06% of the solved square.
+ *
+ * The pits were placed too and sit ~3% out, which is expected rather than
+ * error: BARON_PIT above is the centroid of everything sharing that pit
+ * (Baron, Herald, the Grubs), not Baron's own position, so it is deliberately
+ * pulled in from the visual pit centre. Measured against Baron's real
+ * coordinates the same placement is only 1.7% out.
+ * ------------------------------------------------------------------ */
+
+export const RIFT = { x: 3.32, y: 3.83, size: 86.33 }
+
+/** World coordinate to a position on the minimap image. */
+export const toRiftPercent = (x, y) => ({
+  left: RIFT.x + (x / MAP_MAX) * RIFT.size,
+  top: RIFT.y + (1 - y / MAP_MAX) * RIFT.size,
+})
+
+/** Heat cells, positioned against the art rather than the drawn map. */
+export function binDeathsOnRift(deaths, bins = HEAT_BINS) {
+  return binDeaths(deaths, bins).map((c) => {
+    // binDeaths returns drawn-map percentages; re-project onto the image.
+    const wx = (c.left / 100) * MAP_MAX
+    const wy = (1 - c.top / 100) * MAP_MAX
+    return { n: c.n, ...toRiftPercent(wx, wy) }
+  })
+}

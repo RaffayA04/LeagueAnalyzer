@@ -171,3 +171,163 @@ export function headline(summary) {
     killerCount: topKiller.count,
   }
 }
+
+/* ------------------------------------------------------------------
+ * Twenty-game overview
+ *
+ * Everything below reduces the /api/overview payload. It lives here, not on
+ * the backend, for the same reason the rest of this file does: the rule for
+ * what counts as a high-death game should exist once, in one language.
+ * ------------------------------------------------------------------ */
+
+const mmss = (ms) => {
+  const s = Math.round(ms / 1000)
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+/** Flattens the overview payload into the shapes the screen renders. */
+export function toOverview(payload) {
+  const games = (payload?.games ?? []).map((g, i) => ({
+    i,
+    matchId: g.matchId,
+    status: g.status,
+    ok: g.status === 'OK',
+    champion: g.championName,
+    win: g.win,
+    kills: g.kills,
+    // The scoreboard's death count, which is authoritative. Kept separate from
+    // deathEvents.length: the timeline is what we plot, and if the two ever
+    // disagree the stat should follow the scoreboard rather than our parse.
+    deaths: g.deaths,
+    assists: g.assists,
+    kda: `${g.kills}/${g.deaths}/${g.assists}`,
+    durationMs: g.gameDurationMs,
+    duration: mmss(g.gameDurationMs),
+    objectives: g.objectives ?? [],
+    deathEvents: toDeaths(g.deathEvents ?? []),
+  }))
+
+  // Every death across every game, tagged with the game it came from. The
+  // heatmap bins these; the rail filters them by `game`.
+  const deaths = games.flatMap((g) => g.deathEvents.map((d) => ({ ...d, game: g.i })))
+
+  return {
+    puuid: payload?.puuid,
+    requested: payload?.requested ?? 0,
+    analyzed: payload?.analyzed ?? 0,
+    games,
+    deaths,
+    plotted: deaths.length,
+  }
+}
+
+/** Games per side below which a percentage is not a rate. */
+export const MIN_BUCKET = 5
+
+function rate(games) {
+  const n = games.length
+  const wins = games.filter((g) => g.win).length
+  // null, not 0 — an empty bucket has no win rate, and rendering 0% would
+  // read as "you lost them all".
+  return { n, wins, losses: n - wins, pct: n ? Math.round((wins / n) * 100) : null }
+}
+
+/** Games split at a death-count threshold: fewer than `k`, and `k` or more. */
+export function splitAt(games, k) {
+  const ok = games.filter((g) => g.ok)
+  const below = rate(ok.filter((g) => g.deaths < k))
+  const above = rate(ok.filter((g) => g.deaths >= k))
+  return {
+    k,
+    below,
+    above,
+    gap: below.pct === null || above.pct === null ? null : below.pct - above.pct,
+    // Under five games a side, a "win rate" is a tally wearing a percent sign:
+    // at n=3 the only possible values are 0, 33, 67 and 100. The screen still
+    // shows the split, but says plainly that it is too thin to read.
+    thin: below.n < MIN_BUCKET || above.n < MIN_BUCKET,
+  }
+}
+
+/**
+ * The split evaluated at every possible threshold — the response curve behind
+ * the draggable line.
+ *
+ * Deliberately does NOT return a "best" cut. With ~10 candidate thresholds and
+ * 20 games, the largest gap is nearly always findable by chance; a tool that
+ * auto-selected it would be manufacturing the insight rather than measuring it.
+ * The default threshold is chosen up front, and this only shows the shape.
+ */
+export function thresholdSweep(games) {
+  const ok = games.filter((g) => g.ok)
+  if (!ok.length) return []
+  const max = Math.max(...ok.map((g) => g.deaths))
+  const points = []
+  for (let k = 1; k <= Math.max(max, 1); k++) points.push(splitAt(games, k))
+  return points
+}
+
+/** Zones ranked by how many deaths happened in each. */
+export function zoneRanking(deaths) {
+  const counts = {}
+  for (const d of deaths) counts[d.zone] = (counts[d.zone] || 0) + 1
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])
+}
+
+/** Deaths bucketed by game phase, in minutes. */
+export function phaseCounts(deaths) {
+  const phases = { early: 0, mid: 0, late: 0 }
+  for (const d of deaths) {
+    const min = d.tMs / 60000
+    if (min < 14) phases.early++
+    else if (min < 25) phases.mid++
+    else phases.late++
+  }
+  return phases
+}
+
+/** The header readouts. */
+export function overviewSummary(o) {
+  const ok = o.games.filter((g) => g.ok)
+  const wins = ok.filter((g) => g.win).length
+  const zones = zoneRanking(o.deaths)
+  return {
+    games: ok.length,
+    wins,
+    losses: ok.length - wins,
+    totalDeaths: o.deaths.length,
+    perGame: ok.length ? (o.deaths.length / ok.length).toFixed(1) : '0.0',
+    topZone: zones[0] ?? null,
+    zones,
+    objectiveDeaths: o.deaths.filter((d) => d.obj).length,
+    phases: phaseCounts(o.deaths),
+    // Surfaced rather than hidden: a heatmap that claims twenty games has to
+    // say when it only has seventeen.
+    missing: o.requested - ok.length,
+  }
+}
+
+/**
+ * Splash art URL for a champion, from Riot's Data Dragon CDN.
+ *
+ * Match-V5's `championName` is already Data Dragon's key for almost every
+ * champion (it returns the internal name — "MonkeyKing", not "Wukong"), so this
+ * is close to identity. The strip is a guard against the few names that carry
+ * punctuation, and against anything unexpected reaching a URL.
+ *
+ * Data Dragon only serves default splashes, so a player who exclusively plays a
+ * skin will see art they may not recognise as theirs.
+ */
+export function splashUrl(championName) {
+  if (!championName) return null
+  const key = championName.replace(/[^A-Za-z0-9]/g, '')
+  return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${key}_0.jpg`
+}
+
+/** The champion a player used most across the overview. */
+export function topChampion(games) {
+  const counts = {}
+  for (const g of games) if (g.ok && g.champion) counts[g.champion] = (counts[g.champion] || 0) + 1
+  const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1])
+  return ranked.length ? ranked[0][0] : null
+}

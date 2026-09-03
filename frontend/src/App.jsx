@@ -1,43 +1,69 @@
 import { useEffect, useState } from 'react'
 import DeathAnalysis from './components/DeathAnalysis'
-import { findPlayer, findMatches, findParticipantId, findAnalysis } from './api'
-import { toDeaths } from './stats'
+import Overview from './components/Overview'
+import Landing from './components/Landing'
+import { findPlayer, findOverview, findParticipantId, findAnalysis } from './api'
+import { toDeaths, toOverview } from './stats'
+import { DEMO_ACCOUNT } from './demoData'
 
-// Screens 1 and 2 were not part of the design file, so they are deliberately
-// plain — enough to reach the analysis screen, which is the designed one.
+/**
+ * Riot ID -> twenty-game overview -> a single game, opened from the rail.
+ *
+ * The match picker used to sit between the search and any analysis, which meant
+ * choosing a game before there was anything to choose it on. It now lives
+ * inside the overview, where each game already carries its champion, result and
+ * death count — and where the aggregate stays on screen as the comparison.
+ */
 export default function App() {
-  const [stage, setStage] = useState('search') // search | matches | analysis
+  const [stage, setStage] = useState('search') // search | overview | analysis
   const [busy, setBusy] = useState(null)
   const [error, setError] = useState(null)
 
   const [riotId, setRiotId] = useState('')
   const [player, setPlayer] = useState(null)
-  const [matchIds, setMatchIds] = useState([])
+  const [overview, setOverview] = useState(null)
   const [matchId, setMatchId] = useState(null)
   const [deaths, setDeaths] = useState([])
   const [objectives, setObjectives] = useState([])
 
-  async function onSearch(e) {
+  function onSearch(e) {
     e.preventDefault()
     const [gameName, tagLine] = riotId.split('#')
     if (!gameName || !tagLine) {
-      setError('Enter a full Riot ID, including the tag — for example Raffay#NA1.')
+      setError('Enter a full Riot ID, including the tag — for example LittleChaddha#NA1.')
       return
     }
+    return analyze(gameName.trim(), tagLine.trim(), riotId)
+  }
+
+  /** The landing page's one-click demo. A visitor who has never played still
+   *  needs to be able to see the product work. */
+  function onDemo() {
+    const label = `${DEMO_ACCOUNT.gameName}#${DEMO_ACCOUNT.tagLine}`
+    setRiotId(label)
+    return analyze(DEMO_ACCOUNT.gameName, DEMO_ACCOUNT.tagLine, label)
+  }
+
+  async function analyze(gameName, tagLine, label) {
     setError(null)
     setBusy('Looking up that Riot ID')
     try {
-      const found = await findPlayer(gameName.trim(), tagLine.trim())
+      const found = await findPlayer(gameName, tagLine)
       if (!found?.puuid) throw new Error('not found')
       setPlayer(found)
-      setBusy('Fetching recent matches')
-      const list = await findMatches(found.puuid)
-      setMatchIds(list?.matchIds ?? [])
-      setStage('matches')
+      setBusy('Reading your last 20 ranked games')
+      const payload = await findOverview(found.puuid, 20)
+      const built = toOverview(payload)
+      if (!built.games.length) {
+        setError(`No ranked solo games found for "${label}". This screen only reads Ranked Solo/Duo.`)
+        return
+      }
+      setOverview(built)
+      setStage('overview')
     } catch (err) {
       setError(
         err?.status === 404 || err?.message === 'not found'
-          ? `No player found for "${riotId}". Check the spelling and the tag after the #.`
+          ? `No player found for "${label}". Check the spelling and the tag after the #.`
           : (err?.message ?? 'Something went wrong.'),
       )
     } finally {
@@ -45,14 +71,18 @@ export default function App() {
     }
   }
 
-  async function onPickMatch(id) {
+  /**
+   * The deep dive. The overview already knows the match, but /api/analysis is
+   * keyed by participant number, so that still has to be resolved. The per-game
+   * screen is unchanged — this is the same analysis it always rendered.
+   */
+  async function onOpenGame(game) {
     setError(null)
-    setMatchId(id)
-    setBusy('Finding you in this match')
+    setMatchId(game.matchId)
+    setBusy('Opening that game')
     try {
-      const { participantId } = await findParticipantId(id, player.puuid)
-      setBusy('Reconstructing the timeline')
-      const analysis = await findAnalysis(id, participantId)
+      const { participantId } = await findParticipantId(game.matchId, player.puuid)
+      const analysis = await findAnalysis(game.matchId, participantId)
       setDeaths(toDeaths(analysis.deaths ?? []))
       setObjectives(analysis.objectives ?? [])
       setStage('analysis')
@@ -66,8 +96,11 @@ export default function App() {
 
   function reset() {
     setStage('search')
+    // The control says "search a different player", so leaving the old Riot ID
+    // in the field contradicts it.
+    setRiotId('')
     setPlayer(null)
-    setMatchIds([])
+    setOverview(null)
     setMatchId(null)
     setDeaths([])
     setObjectives([])
@@ -77,76 +110,45 @@ export default function App() {
   if (stage === 'analysis') {
     return (
       <div className="shell">
-        <DeathAnalysis deaths={deaths} objectives={objectives} matchId={matchId} player={player} />
-        <p style={{ marginTop: 20 }}>
-          <button type="button" className="btn-quiet" onClick={() => setStage('matches')}>
-            ← Pick another match
-          </button>
-        </p>
+        <DeathAnalysis
+          deaths={deaths}
+          objectives={objectives}
+          matchId={matchId}
+          player={player}
+          onBack={() => setStage('overview')}
+        />
       </div>
     )
   }
 
-  if (stage === 'matches') {
+  if (stage === 'overview') {
     return (
-      <div className="entry">
-        <h1>Recent matches</h1>
-        <p className="lede">
-          {player.gameName}#{player.tagLine} — your {matchIds.length} most recent games. Riot only
-          gives us match IDs here, so there is nothing else to show until one is opened.
-        </p>
-        {busy ? (
-          <Busy what={busy} />
-        ) : (
-          <div className="matches">
-            {matchIds.map((id, i) => (
-              <button key={id} type="button" className="match-btn" onClick={() => onPickMatch(id)}>
-                <span>{id}</span>
-                <span className="n">{i === 0 ? 'most recent' : `#${i + 1}`}</span>
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="shell">
+        {busy && <Busy what={busy} />}
         {error && <div className="notice">{error}</div>}
-        <p style={{ marginTop: 24 }}>
-          <button type="button" className="btn-quiet" onClick={reset}>
-            ← Search a different player
-          </button>
-        </p>
+        <Overview overview={overview} player={player} onOpenGame={onOpenGame} onBack={reset} />
       </div>
     )
   }
 
   return (
-    <div className="entry">
-      <h1>
-        LEAGUE<span style={{ color: 'var(--blue)' }}>ANALYZER</span>
-      </h1>
-      <p className="lede">
-        Where you died last game, and what was happening on the map when you did.
-      </p>
-      <form className="field" onSubmit={onSearch}>
-        <input
-          value={riotId}
-          onChange={(e) => setRiotId(e.target.value)}
-          placeholder="Riot ID, e.g. Raffay#NA1"
-          aria-label="Riot ID"
-          autoFocus
-        />
-        <button type="submit" className="btn" disabled={!!busy}>
-          {busy ? 'Working…' : 'Analyze'}
-        </button>
-      </form>
+    <Landing
+      riotId={riotId}
+      setRiotId={setRiotId}
+      onSearch={onSearch}
+      onDemo={onDemo}
+      busy={busy}
+    >
       {busy && <Busy what={busy} />}
       {error && <div className="notice">{error}</div>}
-    </div>
+    </Landing>
   )
 }
 
 /**
- * A silent spinner during a 60-second cold start reads as a broken site. This
- * escalates its explanation the longer the wait runs, so a slow first request
- * looks like a known tradeoff rather than a hang.
+ * A silent spinner reads as a broken site, so this always says what it is
+ * waiting on. Twenty games is forty Riot calls on a cold cache — measured at
+ * ~2.8s — so the copy names that rather than apologising for the host.
  */
 function Busy({ what }) {
   const [elapsed, setElapsed] = useState(0)
@@ -157,19 +159,15 @@ function Busy({ what }) {
     return () => clearInterval(id)
   }, [what])
 
-  let why = "Riot's timeline is about 1.2 MB, so this takes a moment."
-  if (elapsed >= 20) {
-    why = 'Still waking up. A cold start takes about a minute — it stays fast afterwards.'
-  } else if (elapsed >= 5) {
-    why = 'The server sleeps when idle on free hosting, so the first request has to wake it.'
-  }
+  let why = 'Twenty games is forty requests to Riot, so this takes a moment.'
+  if (elapsed >= 6) why = "Still fetching from Riot's API — hang tight."
 
   return (
     <div className="loading">
       <span className="what">{what}…</span>
       <span className="why">{why}</span>
       <span className="skel" />
-      {elapsed >= 5 && <span className="why elapsed">{elapsed}s</span>}
+      {elapsed >= 3 && <span className="why elapsed">{elapsed}s</span>}
     </div>
   )
 }
