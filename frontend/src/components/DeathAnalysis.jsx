@@ -18,8 +18,8 @@ export default function DeathAnalysis({ deaths, objectives = [], matchId, player
 
   const matching = filter ? deaths.filter((d) => d[filter.k] === filter.v).length : deaths.length
   const shown = filter
-    ? `SHOWING ${matching} OF ${summary.total} — ${filter.v.toUpperCase()}`
-    : `${summary.total} ${summary.total === 1 ? 'DEATH' : 'DEATHS'} · CHRONOLOGICAL`
+    ? `Showing ${matching} of ${summary.total} — ${filter.v}`
+    : `${summary.total} ${summary.total === 1 ? 'death' : 'deaths'}, chronological`
 
   return (
     <div className="panel">
@@ -57,7 +57,7 @@ export default function DeathAnalysis({ deaths, objectives = [], matchId, player
           {summary.total > 0 && (
             <div className="cards">
               <div className="card">
-                <span className="label">WHERE</span>
+                <span className="label">Where</span>
                 <span className="text">
                   {summary.topZone.name} accounts for{' '}
                   <strong>
@@ -72,7 +72,7 @@ export default function DeathAnalysis({ deaths, objectives = [], matchId, player
               </div>
 
               <div className="card">
-                <span className="label">WHO</span>
+                <span className="label">Who</span>
                 <span className="text">
                   <strong className="killer">{summary.topKiller.name}</strong> killed you{' '}
                   {summary.topKiller.count} {summary.topKiller.count === 1 ? 'time' : 'times'}
@@ -84,7 +84,7 @@ export default function DeathAnalysis({ deaths, objectives = [], matchId, player
               </div>
 
               <div className="card">
-                <span className="label obj">OBJECTIVES</span>
+                <span className="label obj">Objectives</span>
                 <span className="text">
                   {summary.objCount === 0 ? (
                     <>No deaths happened while Baron or Drake was up.</>
@@ -127,7 +127,7 @@ export default function DeathAnalysis({ deaths, objectives = [], matchId, player
         <div className="list-section">
           <ObjectiveLedger objectives={objectives} />
           <div className="chips">
-            <span className="label">ALL DEATHS</span>
+            <span className="label">All deaths</span>
             {chips.map((c) => {
               const active = filter && filter.k === c.k && filter.v === c.v
               return (
@@ -172,7 +172,7 @@ export default function DeathAnalysis({ deaths, objectives = [], matchId, player
                   </span>
                   {d.obj && (
                     <span className={`obj ${objTone(d, objectives)}`}>
-                      {d.obj === 'baron' ? 'BARON' : 'DRAKE'}
+                      {d.obj === 'baron' ? 'Baron' : 'Drake'}
                     </span>
                   )}
                 </button>

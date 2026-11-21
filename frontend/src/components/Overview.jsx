@@ -79,10 +79,10 @@ export default function Overview({ overview, player, onOpenGame, onBack }) {
           <div className="c-rail-head">
             <h3>{game ? `${game.champion} · ${game.duration}` : `All ${playable.length} games`}</h3>
             {selected === null ? (
-              <span className="c-hint">select to filter</span>
+              <span className="c-hint">Select to filter</span>
             ) : (
               <button type="button" className="c-clear" onClick={() => setSelected(null)}>
-                clear
+                Clear
               </button>
             )}
           </div>

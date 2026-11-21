@@ -9,7 +9,7 @@ export default function ObjectiveLedger({ objectives }) {
   if (!objectives.length) {
     return (
       <div className="ledger">
-        <span className="label">OBJECTIVES</span>
+        <span className="label">Objectives</span>
         <span className="ledger-empty">Neither team took a Baron or Drake this game.</span>
       </div>
     )
@@ -20,7 +20,7 @@ export default function ObjectiveLedger({ objectives }) {
   return (
     <div className="ledger">
       <div className="ledger-head">
-        <span className="label">OBJECTIVES</span>
+        <span className="label">Objectives</span>
         <span className="ledger-tally">
           {mine} of {objectives.length} to your team
         </span>
@@ -34,7 +34,7 @@ export default function ObjectiveLedger({ objectives }) {
           >
             <span className="obj-time">{o.timestamp}</span>
             <span className="obj-name">{objectiveLabel(o)}</span>
-            <span className="obj-side">{o.myTeam ? 'YOURS' : 'ENEMY'}</span>
+            <span className="obj-side">{o.myTeam ? 'Yours' : 'Enemy'}</span>
           </span>
         ))}
       </div>
