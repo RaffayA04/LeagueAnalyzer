@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import Minimap from './Minimap'
 import { DEMO_DEATHS, DEMO_GAMES, DEMO_STATS, DEMO_ACCOUNT } from '../demoData'
+import { championIcon } from '../stats'
 
 /**
  * The landing page.
@@ -66,7 +67,7 @@ export default function Landing({ riotId, setRiotId, onSearch, onDemo, busy, chi
         <div className="lp-legend">
           <span>{DEMO_STATS.total} deaths</span>
           <i className="dot" />
-          <span>{DEMO_STATS.objective} with an objective up</span>
+          <span>{DEMO_STATS.critical} critical</span>
         </div>
       </div>
 
@@ -87,8 +88,8 @@ export default function Landing({ riotId, setRiotId, onSearch, onDemo, busy, chi
               <Minimap deaths={objDeaths} art decorative />
             </div>
             <figcaption>
-              <strong>Filter to objective deaths.</strong> {s.objective} of {s.total} happened with
-              Baron or a Drake alive — a different map from the other {s.total - s.objective}.
+              <strong>Filter to critical deaths.</strong> {s.critical} of {s.total} happened with
+              Baron or a Drake alive — a different map from the other {s.total - s.critical}.
             </figcaption>
           </figure>
 
@@ -141,19 +142,28 @@ function MiniSplit({ s }) {
   )
 }
 
+/** Mirrors the real rail, so the preview advertises the layout that ships. */
 function MiniRail() {
   return (
     <div className="mini-rail">
       {DEMO_GAMES.slice(0, 5).map((g) => (
         <span className={`mini-game${g.win ? ' w' : ' l'}`} key={g.i}>
           <span className="edge" />
-          <span className="who">
-            <span className="ch">{g.champion}</span>
-            <span className="kd">
-              {g.kills}/{g.deaths}/{g.assists}
-            </span>
+          <img
+            className="c-champ"
+            src={championIcon(g.champion)}
+            alt={g.champion}
+            title={g.champion}
+            loading="lazy"
+            width="22"
+            height="22"
+          />
+          <span className="c-kda">{g.kda}</span>
+          <span className="c-dur">{g.duration}</span>
+          <span className={`cnt${g.critical > 0 ? ' crit' : ''}`}>
+            {g.critical}
+            <sub>C</sub>
           </span>
-          <span className={`cnt${g.deaths >= 6 ? ' hi' : ''}`}>{g.deaths}</span>
         </span>
       ))}
     </div>

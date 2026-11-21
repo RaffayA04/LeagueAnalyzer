@@ -550,9 +550,11 @@ h1.headline .count { color: var(--red); }
 .c-game .c-kda { font-family: var(--mono); font-size: var(--fs-label); color: var(--fainter); white-space: nowrap; }
 .c-game .c-kda.dim { font-family: var(--sans); color: var(--faintest); }
 .c-game .c-dur { font-family: var(--mono); font-size: var(--fs-label); color: var(--fainter); white-space: nowrap; justify-self: start; }
-.c-game .cnt { font-family: var(--mono); font-size: var(--fs-body); font-weight: var(--fw-medium); color: var(--muted); justify-self: end; }
-.c-game.hi .cnt { color: var(--red); }
-.c-game .cnt sub { font-size: var(--fs-micro); color: var(--fainter); vertical-align: baseline; margin-left: 2px; }
+/* Critical deaths. Red is the signal, so a zero stays muted — no critical
+   deaths is good news and should not read as an alarm. */
+.c-game .cnt { font-family: var(--mono); font-size: var(--fs-body); font-weight: var(--fw-medium); color: var(--faintest); justify-self: end; }
+.c-game .cnt.crit { color: var(--red); }
+.c-game .cnt sub { font-size: var(--fs-micro); color: var(--faintest); vertical-align: baseline; margin-left: 2px; }
 
 /* map */
 .c-view { display: flex; flex-direction: column; min-width: 0; }
@@ -750,7 +752,7 @@ h1.headline .count { color: var(--red); }
 .mini-n { font-size: var(--fs-micro); color: var(--faintest); margin-top: 2px; }
 
 .mini-rail { display: flex; flex-direction: column; }
-.mini-game { display: grid; grid-template-columns: 3px 1fr auto; gap: 9px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line-faint); }
+.mini-game { display: grid; grid-template-columns: 3px 22px 64px 1fr auto; gap: 0 9px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line-faint); }
 .mini-game:last-child { border-bottom: 0; }
 .mini-game .edge { align-self: stretch; background: var(--green); }
 .mini-game.l .edge { background: var(--red); }

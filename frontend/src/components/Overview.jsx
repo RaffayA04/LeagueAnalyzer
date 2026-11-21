@@ -62,7 +62,7 @@ export default function Overview({ overview, player, onOpenGame, onBack }) {
           <Readout k="Deaths" v={summary.totalDeaths} />
           <Readout k="Per game" v={summary.perGame} />
           <Readout k="Hot zone" v={summary.topZone ? summary.topZone[0] : '—'} tone="rd" />
-          <Readout k="Obj. live" v={summary.objectiveDeaths} tone="am" />
+          <Readout k="Critical" v={summary.criticalDeaths} tone="rd" />
         </div>
       </header>
 
@@ -128,9 +128,12 @@ export default function Overview({ overview, player, onOpenGame, onBack }) {
                     <span className="c-dur" />
                   </>
                 )}
-                <span className="cnt">
-                  {g.ok ? g.deaths : '—'}
-                  {g.ok && <sub>D</sub>}
+                <span
+                  className={`cnt${g.ok && g.critical > 0 ? ' crit' : ''}`}
+                  title={g.ok ? `${g.critical} of ${g.deaths} deaths with an objective up` : undefined}
+                >
+                  {g.ok ? g.critical : '—'}
+                  {g.ok && <sub>C</sub>}
                 </span>
               </button>
             ))}
@@ -161,7 +164,7 @@ export default function Overview({ overview, player, onOpenGame, onBack }) {
                     checked={objOnly}
                     onChange={(e) => setObjOnly(e.target.checked)}
                   />
-                  <span>Baron or Drake up</span>
+                  <span>Critical deaths only</span>
                 </label>
                 <span className="c-count">
                   {shown.length} {shown.length === 1 ? 'death' : 'deaths'}

@@ -210,6 +210,13 @@ export function toOverview(payload) {
     duration: mmss(g.gameDurationMs),
     objectives: g.objectives ?? [],
     deathEvents: toDeaths(g.deathEvents ?? []),
+    // Critical deaths: the ones that happened while Baron or a Drake was live.
+    // A death with an objective on the map costs more than the gold and the
+    // timer — it is the one the rail reports, because it is the one worth
+    // reviewing.
+    critical: (g.deathEvents ?? []).filter(
+      (e) => e.objectives?.baronAlive || e.objectives?.dragonAlive,
+    ).length,
   }))
 
   // Every death across every game, tagged with the game it came from. The
@@ -304,7 +311,7 @@ export function overviewSummary(o) {
     perGame: ok.length ? (o.deaths.length / ok.length).toFixed(1) : '0.0',
     topZone: zones[0] ?? null,
     zones,
-    objectiveDeaths: o.deaths.filter((d) => d.obj).length,
+    criticalDeaths: o.deaths.filter((d) => d.obj).length,
     phases: phaseCounts(o.deaths),
     // Surfaced rather than hidden: a heatmap that claims twenty games has to
     // say when it only has seventeen.
