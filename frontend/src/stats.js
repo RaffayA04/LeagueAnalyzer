@@ -105,8 +105,8 @@ export function objectiveLabel(o) {
 
 /** Short form for tight spaces like the death rows. */
 export function objectiveShort(o) {
-  if (o.monster === 'BARON_NASHOR') return 'BARON'
-  return o.subType === 'ELDER_DRAGON' ? 'ELDER' : 'DRAKE'
+  if (o.monster === 'BARON_NASHOR') return 'Baron'
+  return o.subType === 'ELDER_DRAGON' ? 'Elder' : 'Drake'
 }
 
 /**
@@ -157,7 +157,12 @@ export function coachLine(deaths, summary, hover, filter, objectives = []) {
   }
 
   if (!summary.total) return 'No deaths in this game. Nothing to review here.'
-  return `${summary.topZone.count} of your ${summary.total} deaths were on ${summary.topZone.name}, and ${summary.topKiller.name} was the killer in ${summary.topKiller.count}. Hover any death to see what was happening.`
+  const { total, topZone, topKiller } = summary
+  return (
+    `You died ${total} ${total === 1 ? 'time' : 'times'}, ` +
+    `${topZone.count} ${topZone.count === 1 ? 'death was' : 'deaths were'} at ${topZone.name}. ` +
+    `${topKiller.name} killed you ${topKiller.count} ${topKiller.count === 1 ? 'time' : 'times'}.`
+  )
 }
 
 export function headline(summary) {
