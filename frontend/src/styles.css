@@ -525,7 +525,7 @@ h1.headline .count { color: var(--red); }
 /* One row: icon, K/D/A, length, then deaths pushed to the far edge by the
    1fr gap so the numbers form a column you can scan straight down. */
 .c-game {
-  display: grid; grid-template-columns: 3px 24px auto 1fr auto; gap: 0 10px;
+  display: grid; grid-template-columns: 3px 22px 64px 1fr auto; gap: 0 10px;
   align-items: center;
   width: 100%; padding: 7px 18px 7px 0;
   background: none; border: 0; border-bottom: 1px solid var(--line-faint);
@@ -534,14 +534,22 @@ h1.headline .count { color: var(--red); }
 }
 .c-game:hover:not(:disabled) { background: var(--hover); }
 .c-game[aria-pressed="true"] { background: var(--card); box-shadow: inset -2px 0 0 var(--blue); }
-.c-game[aria-pressed="true"] .ch { color: var(--blue); }
+.c-game[aria-pressed="true"] .c-dur { color: var(--muted); }
 .c-game:disabled { cursor: default; opacity: .45; }
 .c-game .edge { align-self: stretch; background: var(--green); }
 .c-game.l .edge { background: var(--red); }
 .c-game.dead .edge { background: var(--faintest); }
-.c-game .who { min-width: 0; }
-.c-game .ch { display: block; font-size: var(--fs-label); font-weight: 500; }
-.c-game .kd { display: block; font-family: var(--mono); font-size: var(--fs-label); color: var(--fainter); margin-top: 1px; }
+.c-champ {
+  width: 22px; height: 22px; border-radius: 50%; display: block;
+  background: var(--card); box-shadow: 0 0 0 1px var(--line);
+}
+.c-champ.missing { box-shadow: inset 0 0 0 1px var(--line-faint); }
+/* Supporting context, not the subject. The death count at the far edge is what
+   this screen is about; a brighter K/D/A competed with it. The column is fixed
+   so durations line up instead of stepping in and out with each digit count. */
+.c-game .c-kda { font-family: var(--mono); font-size: var(--fs-label); color: var(--fainter); white-space: nowrap; }
+.c-game .c-kda.dim { font-family: var(--sans); color: var(--faintest); }
+.c-game .c-dur { font-family: var(--mono); font-size: var(--fs-label); color: var(--fainter); white-space: nowrap; justify-self: start; }
 .c-game .cnt { font-family: var(--mono); font-size: var(--fs-body); font-weight: var(--fw-medium); color: var(--muted); justify-self: end; }
 .c-game.hi .cnt { color: var(--red); }
 .c-game .cnt sub { font-size: var(--fs-micro); color: var(--fainter); vertical-align: baseline; margin-left: 2px; }
