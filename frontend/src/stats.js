@@ -336,3 +336,21 @@ export function topChampion(games) {
   const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1])
   return ranked.length ? ranked[0][0] : null
 }
+
+/**
+ * Champion square icon.
+ *
+ * Community Dragon rather than Data Dragon: its `latest` path needs no patch
+ * version in the URL. Data Dragon requires one, and it moves — it went 16.17.1
+ * to 16.23.1 in two months — so a hardcoded version silently 404s every icon
+ * a few weeks after you ship.
+ *
+ * Match-V5's `championName` is the internal key Community Dragon expects
+ * ("MonkeyKing", not "Wukong"), so this is close to identity; the strip guards
+ * the few names carrying punctuation.
+ */
+export function championIcon(championName) {
+  if (!championName) return null
+  const key = championName.replace(/[^A-Za-z0-9]/g, '')
+  return `https://cdn.communitydragon.org/latest/champion/${key}/square`
+}

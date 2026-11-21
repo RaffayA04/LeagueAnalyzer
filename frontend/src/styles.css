@@ -522,9 +522,12 @@ h1.headline .count { color: var(--red); }
 .c-games::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
 .c-games::-webkit-scrollbar-track { background: transparent; }
 
+/* One row: icon, K/D/A, length, then deaths pushed to the far edge by the
+   1fr gap so the numbers form a column you can scan straight down. */
 .c-game {
-  display: grid; grid-template-columns: 3px 1fr auto; gap: 0 11px; align-items: center;
-  width: 100%; padding: 9px 18px 9px 0;
+  display: grid; grid-template-columns: 3px 24px auto 1fr auto; gap: 0 10px;
+  align-items: center;
+  width: 100%; padding: 7px 18px 7px 0;
   background: none; border: 0; border-bottom: 1px solid var(--line-faint);
   font: inherit; color: inherit; text-align: left; cursor: pointer;
   transition: background .15s;
@@ -539,7 +542,7 @@ h1.headline .count { color: var(--red); }
 .c-game .who { min-width: 0; }
 .c-game .ch { display: block; font-size: var(--fs-label); font-weight: 500; }
 .c-game .kd { display: block; font-family: var(--mono); font-size: var(--fs-label); color: var(--fainter); margin-top: 1px; }
-.c-game .cnt { font-family: var(--mono); font-size: var(--fs-body); font-weight: var(--fw-medium); color: var(--muted); }
+.c-game .cnt { font-family: var(--mono); font-size: var(--fs-body); font-weight: var(--fw-medium); color: var(--muted); justify-self: end; }
 .c-game.hi .cnt { color: var(--red); }
 .c-game .cnt sub { font-size: var(--fs-micro); color: var(--fainter); vertical-align: baseline; margin-left: 2px; }
 

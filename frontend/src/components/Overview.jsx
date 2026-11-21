@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import Minimap from './Minimap'
 import ThresholdSplit from './ThresholdSplit'
-import { overviewSummary, topChampion, splashUrl } from '../stats'
+import { overviewSummary, topChampion, splashUrl, championIcon } from '../stats'
 import { peakDensity } from '../mapGeometry'
 
 /**
@@ -104,10 +104,30 @@ export default function Overview({ overview, player, onOpenGame, onBack }) {
                 onClick={() => setSelected((s) => (s === g.i ? null : g.i))}
               >
                 <span className="edge" />
-                <span className="who">
-                  <span className="ch">{g.ok ? g.champion : 'Unavailable'}</span>
-                  <span className="kd">{g.ok ? `${g.kda} · ${g.duration}` : g.status.toLowerCase().replace(/_/g, ' ')}</span>
-                </span>
+                {g.ok ? (
+                  <>
+                    {/* The icon replaces the name, so it has to carry it: alt for
+                        screen readers, title for anyone who does not know the
+                        portrait on sight. */}
+                    <img
+                      className="c-champ"
+                      src={championIcon(g.champion)}
+                      alt={g.champion}
+                      title={g.champion}
+                      loading="lazy"
+                      width="24"
+                      height="24"
+                    />
+                    <span className="c-kda">{g.kda}</span>
+                    <span className="c-dur">{g.duration}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="c-champ missing" aria-hidden="true" />
+                    <span className="c-kda dim">{g.status.toLowerCase().replace(/_/g, ' ')}</span>
+                    <span className="c-dur" />
+                  </>
+                )}
                 <span className="cnt">
                   {g.ok ? g.deaths : '—'}
                   {g.ok && <sub>D</sub>}
